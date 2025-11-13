@@ -1,36 +1,70 @@
-# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+##############################
+# Backend - Python
+##############################
 
-# dependencies
-/node_modules
-/.pnp
-.pnp.js
+# Byte-compiled / cache
+__pycache__/
+*.py[cod]
+*.so
 
-# testing
-/coverage
+# Virtual environments
+venv/
+env/
+.venv/
+ENV/
+python_env/
 
-# next.js
-/.next/
-/out/
+# Packaging
+build/
+dist/
+*.egg-info/
 
-# production
-/build
+# Environment variables
+.env
+.env.*
+*.env
 
-# misc
-.DS_Store
-*.pem
+# Logs
+*.log
 
-# debug
+# Jupyter
+.ipynb_checkpoints/
+
+##############################
+# Frontend - Next.js
+##############################
+
+# Next.js build
+.next/
+out/
+
+# Dependencies
+node_modules/
+
+# Debug logs
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+pnpm-debug.log*
+bun-debug.log*
 
-# local env files
-.env*.local
-.env
+# dotenv for frontend
+*.local
 
-# vercel
-.vercel
+# Vercel
+.vercel/
 
-# typescript
-*.tsbuildinfo
-next-env.d.ts
+##############################
+# OS / Editor / Misc
+##############################
+
+.DS_Store
+Thumbs.db
+
+# Editors
+.vscode/
+.idea/
+
+# Mac system file
+.AppleDouble
+.LSOverride
