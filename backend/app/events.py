@@ -59,30 +59,26 @@ def register_socketio_events(sio):
     @sio.event
     async def send_private_message(sid, data):
         sender = users.get(sid)
-        receiver_name = data.get('to')
-        message = data.get('message')
+        receiver_name = data.get("to")
 
-        print(f"[Private] {sender} → {receiver_name}: {message}")
+        msg_type = data.get("type", "text")
+        text = data.get("message")
+        image = data.get("image")
 
-        # Find receiver socket ID
-        target_sid = None
-        for s, name in users.items():
-            if name == receiver_name:
-                target_sid = s
-                break
+        # find receiver SID
+        target_sid = next((s for s, n in users.items() if n == receiver_name), None)
 
-        # If found, send message to both sender and receiver
-        if target_sid:
-            # send to receiver
-            await sio.emit('receive_private_message', {
-                'from': sender,
-                'message': message
-            }, to=target_sid)
+        payload = {"from": sender}
 
-        else:
-            await sio.emit('error_message', {
-                'message': f"User {receiver_name} not found or offline."
-            }, to=sid)
+        if msg_type == "text":
+            payload["message"] = text
+            payload["type"] = "text"
+
+        elif msg_type == "image":
+            payload["image"] = image
+            payload["type"] = "image"
+
+        await sio.emit("receive_private_message", payload, to=target_sid)
 
 
     @sio.event
@@ -130,19 +126,26 @@ def register_socketio_events(sio):
     @sio.event
     async def send_group_message(sid, data):
         group_name = data.get("group")
-        message = data.get("message")
         sender = users.get(sid)
+        msg_type = data.get("type", "text")
+        message = data.get("message")
+        image = data.get("image")
 
         if not group_name or group_name not in rooms:
             await sio.emit("error_message", {"message": "Invalid group"}, to=sid)
             return
 
-        print(f"[Group {group_name}] {sender}: {message}")
-        await sio.emit("receive_group_message", {
-            "group": group_name,
-            "from": sender,   
-            "message": message
-        }, room=group_name, skip_sid=sid)
+        if msg_type == "text":
+            print(f"[Group {group_name}] {sender}: {message}")
+            payload = {"group": group_name, "from": sender, "message": message, "type": "text"}
+        elif msg_type == "image":
+            print(f"[Group {group_name}] {sender} sent an image")
+            payload = {"group": group_name, "from": sender, "image": image, "type": "image"}
+        else:
+            await sio.emit("error_message", {"message": "Unsupported message type"}, to=sid)
+            return
+
+        await sio.emit("receive_group_message", payload, room=group_name, skip_sid=sid)
     
     @sio.event
     async def ask_ai(sid, data):

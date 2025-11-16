@@ -4,11 +4,15 @@ import { io } from "socket.io-client";
 
 import { socket } from "../../../lib/socket";
 import ThemeToggleButton from "@/src/components/ThemeToggleButton";
+import Link from "next/link";
+import { ClipboardDocumentIcon, PhotoIcon } from "@heroicons/react/24/solid";
 
 interface Message {
 	from: string;
 	to?: string;
-	message: string;
+	type?: "text" | "image";
+	message?: string;   // optional for text
+	image?: string;     // optional for image (base64)
 }
 
 export default function ChatPage() {
@@ -22,7 +26,7 @@ export default function ChatPage() {
 	const [privateChats, setPrivateChats] = useState<Record<string, Message[]>>({});
 	const [groupChats, setGroupChats] = useState<Record<string, Message[]>>({});
 	const [unreadChats, setUnreadChats] = useState<Set<string>>(new Set());
-    const [aiMessages, setAiMessages] = useState<Message[]>([]);
+	const [aiMessages, setAiMessages] = useState<Message[]>([]);
 
 
 	// ----- Setup socket listeners -----
@@ -83,10 +87,10 @@ export default function ChatPage() {
 			console.log(data.message);
 		});
 
-        socket.off("ai_response");
-        socket.on("ai_response", (data: Message) => {
-	        setAiMessages((prev) => [...prev, data]);
-        });
+		socket.off("ai_response");
+		socket.on("ai_response", (data: Message) => {
+			setAiMessages((prev) => [...prev, data]);
+		});
 
 
 		return () => {
@@ -130,25 +134,98 @@ export default function ChatPage() {
 		setMessage("");
 	};
 
-    const sendAIMessage = () => {
-        if (!message) return;
-        
-        setAiMessages((prev) => [
-            ...prev,
-            { from: username, message }
-        ]);
-        
-        socket.emit("ask_ai", { message });
-        setMessage("");
-    };
+	const sendAIMessage = () => {
+		if (!message) return;
 
+		setAiMessages((prev) => [
+			...prev,
+			{ from: username, message }
+		]);
 
+		socket.emit("ask_ai", { message });
+		setMessage("");
+	};
+
+	const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+		const file = e.target.files?.[0];
+		if (!file) return;
+
+		const reader = new FileReader();
+
+		reader.onloadend = () => {
+			const base64String = reader.result as string;
+
+			if (activeTab === "ai") {
+				// AI image upload not supported by backend/chat AI service
+				alert("AI image upload is not supported yet.");
+				return;
+			}
+
+			if (activeTab === "private") {
+				if (!selectedUser) return alert("Select a user to send the image to.");
+
+				socket.emit("send_private_message", {
+					to: selectedUser,
+					type: "image",
+					image: base64String,
+				});
+
+				setPrivateChats((prev) => ({
+					...prev,
+					[selectedUser]: [
+						...(prev[selectedUser] || []),
+						{ from: username, to: selectedUser, type: "image", image: base64String },
+					],
+				}));
+
+				setUnreadChats(prev => {
+					const newSet = new Set(prev);
+					newSet.delete(selectedUser);
+					return newSet;
+				});
+
+				return;
+			}
+
+			if (activeTab === "group") {
+				if (!selectedGroup) return alert("Select a group to send the image to.");
+
+				socket.emit("send_group_message", { group: selectedGroup, type: "image", image: base64String });
+
+				setGroupChats((prev) => ({
+					...prev,
+					[selectedGroup]: [
+						...(prev[selectedGroup] || []),
+						{ from: username, type: "image", image: base64String },
+					],
+				}));
+
+				setUnreadChats(prev => {
+					const newSet = new Set(prev);
+					newSet.delete(selectedGroup);
+					return newSet;
+				});
+
+				return;
+			}
+		};
+
+		reader.readAsDataURL(file);  // Convert to base64
+	};
 
 	return (
-		<div className="flex h-screen bg-yellow-100/30 bg-white dark:bg-slate-800 overflow-y-auto">
+		<div className="flex flex-col sm:flex-row h-screen bg-yellow-100/30 bg-white dark:bg-slate-800 overflow-y-auto">
 			{/* Sidebar */}
-			<div className="w-1/3 border-r p-4 dark:border-white">
-				<h1 className="text-xl font-bold mb-2 dark:text-white">Chat App</h1>
+			<div className="sm:w-1/3 border-r p-4 dark:border-white w-[100vw]">
+				<Link href={"/"}>
+					<button
+						className="px-5 py-2 bg-yellow-400 text-black rounded-xl shadow-md hover:scale-105 hover:shadow-xl
+          active:bg-yellow-500 transition-all duration-300 border border-transparent hover:border-yellow-900 dark:bg-amber-700 
+          dark:text-white dark:hover:border-amber-50">
+						Back
+					</button>
+				</Link>
+				<h1 className="text-xl font-bold my-3 dark:text-white">Chat App</h1>
 
 				{/* Username input */}
 				<div className="mb-3">
@@ -187,17 +264,18 @@ export default function ChatPage() {
 					>
 						Group
 					</button>
-                    <button
-                        className={`rounded rounded-xl flex-1 p-2 hover:bg-green-100/50 duration-300 delay-25 dark:text-white
+					<button
+						className={`rounded rounded-xl flex-1 p-2 hover:bg-green-100/50 duration-300 delay-25 dark:text-white
                             ${activeTab === "ai" ? "bg-green-100 font-semibold dark:bg-green-700" : ""}
                         `}
-                        onClick={() => {setActiveTab("ai"); 
-                                        setSelectedUser(null);
-		                                setSelectedGroup(null);
-                                }}
-                    >
-                        AI Chat
-                    </button>
+						onClick={() => {
+							setActiveTab("ai");
+							setSelectedUser(null);
+							setSelectedGroup(null);
+						}}
+					>
+						AI Chat
+					</button>
 				</div>
 
 				{/* Private Tab */}
@@ -219,11 +297,11 @@ export default function ChatPage() {
 												return newSet;
 											});
 										}}
-										className={`cursor-pointer p-2 rounded rounded-xl hover:bg-blue-100/50 duration-300 delay-25 
-                                            acive:bg-blue-100 ${selectedUser === u ? "bg-blue-100" : unreadChats.has(u) ? "bg-red-100 font-semibold" : ""
+										className={`cursor-pointer p-2 rounded rounded-xl hover:bg-blue-100/50 duration-300 delay-25 dark:text-white
+                        acive:bg-blue-100 ${selectedUser === u ? "bg-blue-100 dark:bg-blue-800" : unreadChats.has(u) ? "bg-red-100 font-semibold" : ""
 											}`}
 									>
-										{unreadChats.has(u) ? u + "!!!" : u}
+										{unreadChats.has(u) ? u + " !unread messages!" : u}
 									</li>
 								))}
 						</ul>
@@ -240,7 +318,7 @@ export default function ChatPage() {
 							<>
 								<input
 									className="border p-2 w-full mb-2 shadow-md rounded rounded-xl focus:bg-purple-100 hover:scale-101 duration-300 
-									delay-25 transition-all"
+									delay-25 transition-all dark:placeholder-gray-100 dark:border-gray-100"
 									placeholder="New group name"
 									onKeyDown={(e) => {
 										if (e.key === "Enter") {
@@ -261,7 +339,7 @@ export default function ChatPage() {
 								/>
 								<ul>
 									{Object.keys(groups).length === 0 && (
-										<p className="text-gray-400 text-sm">No groups yet</p>
+										<p className="text-gray-400 text-sm dark:text-gray-100">No groups yet</p>
 									)}
 									{Object.keys(groups).map((g) => (
 										<li
@@ -276,10 +354,10 @@ export default function ChatPage() {
 													return newSet;
 												});
 											}}
-											className={`cursor-pointer p-2 rounded rounded-xl hover:bg-purple-100/50 duration-300 delay-25 acive:bg-purple-100 ${selectedGroup === g ? "bg-purple-100" : unreadChats.has(g) ? "bg-red-100 font-semibold" : ""
+											className={`cursor-pointer p-2 rounded rounded-xl hover:bg-purple-100/50 duration-300 delay-25 acive:bg-purple-100 dark:text-gray-100 ${selectedGroup === g ? "bg-purple-100 dark:bg-purple-800" : unreadChats.has(g) ? "bg-red-100 font-semibold" : ""
 												}`}
 										>
-											{unreadChats.has(g) ? g + "!!!" : g} ({groups[g]?.length || 0})
+											{unreadChats.has(g) ? g + " !unread messages! " : g} ({groups[g]?.length || 0})
 										</li>
 									))}
 								</ul>
@@ -288,83 +366,127 @@ export default function ChatPage() {
 
 				)}
 
-                {/* Ai Tab */}
-                {activeTab === "ai" && (
-                    <>
-                        <h2 className="text-lg font-bold mb-2">AI Assistant 🤖</h2>
-                    </>
-                )}
+				{/* Ai Tab */}
+				{activeTab === "ai" && (
+					<>
+						<h2 className="text-lg font-bold mb-2 dark:text-gray-100">AI Assistant 🤖</h2>
+					</>
+				)}
 
 			</div>
 
 			{/* Chat area */}
 			<div className="flex-1 p-4 flex flex-col">
 				<ThemeToggleButton className="mr-3 mt-2" />
-                {activeTab === "ai" ?  (
-                <div className="flex flex-col h-full">
-                    <h2 className="text-lg font-bold mb-2">AI Assistant 🤖</h2>
+				{activeTab === "ai" ? (
+					<div className="flex flex-col h-full">
+						<h2 className="text-lg font-bold mb-2 dark:text-gray-100">AI Assistant 🤖</h2>
 
-                    {/* Chat window */}
-                    <div className="flex-1 min-h-0 border p-2 overflow-y-auto rounded-xl bg-green-100/50">
-                        {aiMessages.map((msg, i) => (
-                            <p
-                                key={i}
-                                className={`${
-                                    msg.from === username
-                                        ? "text-right text-green-700"
-                                        : "text-left text-gray-800" 
-                                } break-words whitespace-pre-wrap`}
-                            >
-                                <strong>{msg.from === username ? "You" : msg.from}:</strong>{" "}
-                                {msg.message}
-                            </p>
-                        ))}
-                    </div>
+						{/* Chat window */}
+						<div className="flex-1 min-h-0 border p-2 overflow-y-auto rounded-xl bg-green-100/50">
+							{aiMessages.map((msg, i) => (
+								<div key={i} className={`flex ${msg.from === username ? 'justify-end' : 'justify-start'} mb-3`}>
+									<div className="flex items-start">
+										{msg.from === username ?
+											<>
 
-                    {/* Input section */}
-                    <div className="mt-2 flex pb-10">
-                        <input
-                            className="border p-2 w-full shadow-md rounded-xl focus:bg-green-100 hover:scale-101 duration-300"
-                            value={message}
-                            onChange={(e) => setMessage(e.target.value)}
-                            placeholder="Ask AI something..."
-                            onKeyDown={(e) => {
-                                if (e.key === "Enter") {
-                                    e.preventDefault();
-                                    sendAIMessage();
-                                }
-                            }}
-                        />
+												<div className={`p-2 rounded-xl max-w-lg bg-green-100 text-right dark:bg-emerald-950`}>
+													<strong className="block text-sm dark:text-white">You</strong>
+													{msg.type === 'image' ? (
+														<img src={msg.image} className="max-w-xs rounded-xl shadow mt-1" />
+													) : (
+														<span className="break-words whitespace-pre-wrap dark:text-white text-right">{msg.message}</span>
+													)}
+												</div>
+												<div className="w-8 h-8 rounded-full bg-green-100 dark:bg-emerald-950 text-sm dark:text-white flex items-center justify-center ml-2">
+													{(msg.from || '?')[0].toUpperCase()}
+												</div>
+											</> :
+											<>
+												<div className="w-8 h-8 rounded-full bg-white dark:bg-sky-950 dark:text-white text-sm flex items-center justify-center mr-2">
+													{(msg.from || '?')[0].toUpperCase()}
+												</div>
+												<div className={`p-2 rounded-xl max-w-lg bg-white text-left dark:bg-sky-950`}>
+													<strong className="block text-sm dark:text-white">{msg.from}</strong>
+													{msg.type === 'image' ? (
+														<img src={msg.image} className="max-w-xs rounded-xl shadow mt-1" />
+													) : (
+														<span className="break-words whitespace-pre-wrap dark:text-white">{msg.message}</span>
+													)}
+												</div>
+											</>
+										}
+									</div>
+								</div>
+							))}
+						</div>
 
-                        <button
-                            onClick={sendAIMessage}
-                            className="bg-green-500 shadow-md rounded-xl text-white p-2 ml-2 hover:scale-102 hover:shadow-xl"
-                        >
-                            Send
-                        </button>
-                    </div>
-                </div>
-            ) :	selectedUser ? (
+						{/* Input section */}
+						<div className="mt-2 flex pb-10">
+							<input
+								className="border p-2 w-full shadow-md rounded-xl focus:bg-green-100 hover:scale-101 duration-300 dark:border-white dark:placeholder-white dark:focus:placeholder-black"
+								value={message}
+								onChange={(e) => setMessage(e.target.value)}
+								placeholder="Ask AI something..."
+								onKeyDown={(e) => {
+									if (e.key === "Enter") {
+										e.preventDefault();
+										sendAIMessage();
+									}
+								}}
+							/>
+
+							<button
+								onClick={sendAIMessage}
+								className="bg-green-500 shadow-md rounded-xl text-white p-2 ml-2 hover:scale-102 hover:shadow-xl"
+							>
+								Send
+							</button>
+						</div>
+					</div>
+				) : selectedUser ? (
 					<>
-						<h2 className="text-lg font-bold mb-2">Chat with {selectedUser}</h2>
+						<h2 className="text-lg font-bold mb-2 dark:text-gray-100">Chat with {selectedUser}</h2>
 						<div className="flex-1 border p-2 overflow-y-auto rounded rounded-xl bg-blue-100/50">
 							{(privateChats[selectedUser] || []).map((msg, i) => (
-								<p
-									key={i}
-									className={
-										msg.from === username
-											? "text-right text-blue-700"
-											: "text-left text-gray-800"
-									}
-								>
-									<strong>{msg.from === username ? "You" : msg.from}:</strong>{" "}
-									{msg.message}
-								</p>
+								<div key={i} className={`flex ${msg.from === username ? 'justify-end' : 'justify-start'} mb-3`}>
+									<div className="flex items-start">
+										{msg.from === username ?
+											<>
+
+												<div className={`p-2 rounded-xl max-w-lg bg-green-100 text-right dark:bg-emerald-950`}>
+													<strong className="block text-sm dark:text-white">You</strong>
+													{msg.type === 'image' ? (
+														<img src={msg.image} className="max-w-xs rounded-xl shadow mt-1" />
+													) : (
+														<span className="break-words whitespace-pre-wrap dark:text-white text-right">{msg.message}</span>
+													)}
+												</div>
+												<div className="w-8 h-8 rounded-full bg-green-100 dark:bg-emerald-950 text-sm dark:text-white flex items-center justify-center ml-2">
+													{(msg.from || '?')[0].toUpperCase()}
+												</div>
+											</> :
+											<>
+												<div className="w-8 h-8 rounded-full bg-white dark:bg-sky-950 dark:text-white text-sm flex items-center justify-center mr-2">
+													{(msg.from || '?')[0].toUpperCase()}
+												</div>
+												<div className={`p-2 rounded-xl max-w-lg bg-white text-left dark:bg-sky-950`}>
+													<strong className="block text-sm dark:text-white">{msg.from}</strong>
+													{msg.type === 'image' ? (
+														<img src={msg.image} className="max-w-xs rounded-xl shadow mt-1" />
+													) : (
+														<span className="break-words whitespace-pre-wrap dark:text-white">{msg.message}</span>
+													)}
+												</div>
+											</>
+										}
+									</div>
+								</div>
 							))}
 						</div>
 						<div className="mt-2 flex">
 							<input
-								className="border p-2 w-full mt-2 shadow-md rounded rounded-xl focus:bg-blue-100 hover:scale-101 duration-300 delay-25 transition-all flex-1 mr-2"
+								className="border p-2 w-full mt-2 shadow-md rounded rounded-xl focus:bg-blue-100 hover:scale-101 duration-300 delay-25 transition-all flex-1 dark:border-white dark:placeholder-white dark:focus:placeholder-black"
 								value={message}
 								onChange={(e) => setMessage(e.target.value)}
 								placeholder="Type a message..."
@@ -375,6 +497,17 @@ export default function ChatPage() {
 									}
 								}}
 							/>
+							<label
+								className="cursor-pointer mx-3 p-2 bg-yellow-100 hover:bg-amber-200 rounded-xl shadow-md transition-all duration-200 
+    						flex items-center justify-center text-xl dark:bg-slate-700 dark:hover:bg-slate-500">
+								🖼️
+								<input
+									type="file"
+									accept="image/*"
+									onChange={handleImageUpload}
+									className="hidden"
+								/>
+							</label>
 							<button
 								onClick={sendPrivateMessage}
 								className="bg-blue-400 shadow-md rounded rounded-xl mt-2 text-white p-2 hover:scale-102 hover:shadow-xl active:bg-blue-500 duration-300 delay-25 transition-all border border-transparent hover:border-blue-900"
@@ -385,25 +518,47 @@ export default function ChatPage() {
 					</>
 				) : selectedGroup ? (
 					<>
-						<h2 className="text-lg font-bold mb-2">Group: {selectedGroup}</h2>
+						<h2 className="text-lg font-bold mb-2 dark:text-gray-100">Group: {selectedGroup}</h2>
 						<div className="flex-1 border p-2 overflow-y-auto rounded rounded-xl bg-purple-100/50">
 							{(groupChats[selectedGroup] || []).map((msg, i) => (
-								<p
-									key={i}
-									className={
-										msg.from === username
-											? "text-right text-purple-700"
-											: "text-left text-gray-800"
-									}
-								>
-									<strong>{msg.from === username ? "You" : msg.from}:</strong>{" "}
-									{msg.message}
-								</p>
+								<div key={i} className={`flex ${msg.from === username ? 'justify-end' : 'justify-start'} mb-3`}>
+									<div className="flex items-start">
+										{msg.from === username ?
+											<>
+
+												<div className={`p-2 rounded-xl max-w-lg bg-green-100 text-right dark:bg-emerald-950`}>
+													<strong className="block text-sm dark:text-white">You</strong>
+													{msg.type === 'image' ? (
+														<img src={msg.image} className="max-w-xs rounded-xl shadow mt-1" />
+													) : (
+														<span className="break-words whitespace-pre-wrap dark:text-white text-right">{msg.message}</span>
+													)}
+												</div>
+												<div className="w-8 h-8 rounded-full bg-green-100 dark:bg-emerald-950 text-sm dark:text-white flex items-center justify-center ml-2">
+													{(msg.from || '?')[0].toUpperCase()}
+												</div>
+											</> :
+											<>
+												<div className="w-8 h-8 rounded-full bg-white dark:bg-sky-950 dark:text-white text-sm flex items-center justify-center mr-2">
+													{(msg.from || '?')[0].toUpperCase()}
+												</div>
+												<div className={`p-2 rounded-xl max-w-lg bg-white text-left dark:bg-sky-950`}>
+													<strong className="block text-sm dark:text-white">{msg.from}</strong>
+													{msg.type === 'image' ? (
+														<img src={msg.image} className="max-w-xs rounded-xl shadow mt-1" />
+													) : (
+														<span className="break-words whitespace-pre-wrap dark:text-white">{msg.message}</span>
+													)}
+												</div>
+											</>
+										}
+									</div>
+								</div>
 							))}
 						</div>
 						<div className="mt-2 flex">
 							<input
-								className="flex-1 mr-2 border p-2 w-full mt-2 shadow-md rounded rounded-xl focus:bg-purple-100 hover:scale-102 duration-300 delay-25 transition-all"
+								className="flex-1 border p-2 w-full mt-2 shadow-md rounded rounded-xl focus:bg-purple-100 hover:scale-102 duration-300 delay-25 transition-all dark:placeholder-gray-100 dark:border-white dark:focus:placeholder-black"
 								value={message}
 								onChange={(e) => setMessage(e.target.value)}
 								placeholder="Message group..."
@@ -414,6 +569,17 @@ export default function ChatPage() {
 									}
 								}}
 							/>
+							<label
+								className="cursor-pointer mx-3 p-2 bg-yellow-100 hover:bg-amber-200 rounded-xl shadow-md transition-all duration-200 
+    						flex items-center justify-center text-xl dark:bg-slate-700 dark:hover:bg-slate-500">
+								🖼️
+								<input
+									type="file"
+									accept="image/*"
+									onChange={handleImageUpload}
+									className="hidden"
+								/>
+							</label>
 							<button
 								onClick={sendGroupMessage}
 								className="bg-purple-400 shadow-md rounded rounded-xl mt-2 text-white p-2 hover:scale-102 hover:shadow-xl active:bg-purple-500 duration-300 delay-25 transition-all border border-transparent hover:border-purple-900"
@@ -426,8 +592,9 @@ export default function ChatPage() {
 					<div className="flex items-center justify-center h-full text-gray-400 dark:text-gray-100">
 						Select a user or group to start chatting 💬
 					</div>
-				)}
-			</div>
-		</div>
+				)
+				}
+			</div >
+		</div >
 	);
 }

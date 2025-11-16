@@ -33,18 +33,9 @@ export default function AboutPage() {
         </p>
         <button
           onClick={handleBack}
-          className="
-  mt-3
-    px-5 py-2 w-full 
-    bg-yellow-400 text-black
-    rounded-xl shadow-md
-    hover:scale-105 hover:shadow-xl
-    active:bg-yellow-500
-    transition-all duration-300
-    border border-transparent hover:border-yellow-900
-    dark:bg-amber-700 dark:text-white dark:hover:border-amber-50
-  "
-        >
+          className="mt-3 px-5 py-2 w-full bg-yellow-400 text-black rounded-xl shadow-md hover:scale-105 hover:shadow-xl
+          active:bg-yellow-500 transition-all duration-300 border border-transparent hover:border-yellow-900 dark:bg-amber-700 
+          dark:text-white dark:hover:border-amber-50">
           Back
         </button>
       </div>
