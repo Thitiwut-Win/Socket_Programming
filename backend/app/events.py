@@ -1,5 +1,6 @@
 from app.users import users
 from app.rooms import rooms
+from app.ai_service import ask_grok
 
 # all socket events (like connect, register_user, send message) are automatically triggered whenever the client interacts.
 def register_socketio_events(sio):
@@ -142,3 +143,18 @@ def register_socketio_events(sio):
             "from": sender,   
             "message": message
         }, room=group_name, skip_sid=sid)
+    
+    @sio.event
+    async def ask_ai(sid, data):
+        message = data.get("message")
+
+        print(f"[AI Chat] User {users.get(sid)}: {message}")
+
+        # Ask Grok
+        ai_reply = await ask_grok(message)
+
+        # Send reply back only to this user
+        await sio.emit("ai_response", {
+            "from": "AI Assistant 🤖",
+            "message": ai_reply
+        }, to=sid)

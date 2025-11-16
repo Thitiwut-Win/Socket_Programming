@@ -18,10 +18,12 @@ export default function ChatPage() {
 	const [message, setMessage] = useState("");
 	const [groups, setGroups] = useState<Record<string, string[]>>({});
 	const [selectedGroup, setSelectedGroup] = useState<string | null>(null);
-	const [activeTab, setActiveTab] = useState<"private" | "group">("private");
+	const [activeTab, setActiveTab] = useState<"private" | "group" | "ai">("private");
 	const [privateChats, setPrivateChats] = useState<Record<string, Message[]>>({});
 	const [groupChats, setGroupChats] = useState<Record<string, Message[]>>({});
 	const [unreadChats, setUnreadChats] = useState<Set<string>>(new Set());
+    const [aiMessages, setAiMessages] = useState<Message[]>([]);
+
 
 	// ----- Setup socket listeners -----
 	useEffect(() => {
@@ -81,6 +83,12 @@ export default function ChatPage() {
 			console.log(data.message);
 		});
 
+        socket.off("ai_response");
+        socket.on("ai_response", (data: Message) => {
+	        setAiMessages((prev) => [...prev, data]);
+        });
+
+
 		return () => {
 			socket.off("update_user_list");
 			socket.off("receive_private_message");
@@ -122,10 +130,22 @@ export default function ChatPage() {
 		setMessage("");
 	};
 
+    const sendAIMessage = () => {
+        if (!message) return;
+        
+        setAiMessages((prev) => [
+            ...prev,
+            { from: username, message }
+        ]);
+        
+        socket.emit("ask_ai", { message });
+        setMessage("");
+    };
+
 
 
 	return (
-		<div className="flex h-screen bg-yellow-100/30 bg-white dark:bg-slate-800">
+		<div className="flex h-screen bg-yellow-100/30 bg-white dark:bg-slate-800 overflow-y-auto">
 			{/* Sidebar */}
 			<div className="w-1/3 border-r p-4 dark:border-white">
 				<h1 className="text-xl font-bold mb-2 dark:text-white">Chat App</h1>
@@ -167,6 +187,17 @@ export default function ChatPage() {
 					>
 						Group
 					</button>
+                    <button
+                        className={`rounded rounded-xl flex-1 p-2 hover:bg-green-100/50 duration-300 delay-25 dark:text-white
+                            ${activeTab === "ai" ? "bg-green-100 font-semibold dark:bg-green-700" : ""}
+                        `}
+                        onClick={() => {setActiveTab("ai"); 
+                                        setSelectedUser(null);
+		                                setSelectedGroup(null);
+                                }}
+                    >
+                        AI Chat
+                    </button>
 				</div>
 
 				{/* Private Tab */}
@@ -256,12 +287,64 @@ export default function ChatPage() {
 					</div>
 
 				)}
+
+                {/* Ai Tab */}
+                {activeTab === "ai" && (
+                    <>
+                        <h2 className="text-lg font-bold mb-2">AI Assistant 🤖</h2>
+                    </>
+                )}
+
 			</div>
 
 			{/* Chat area */}
 			<div className="flex-1 p-4 flex flex-col">
 				<ThemeToggleButton className="mr-3 mt-2" />
-				{selectedUser ? (
+                {activeTab === "ai" ?  (
+                <div className="flex flex-col h-full">
+                    <h2 className="text-lg font-bold mb-2">AI Assistant 🤖</h2>
+
+                    {/* Chat window */}
+                    <div className="flex-1 min-h-0 border p-2 overflow-y-auto rounded-xl bg-green-100/50">
+                        {aiMessages.map((msg, i) => (
+                            <p
+                                key={i}
+                                className={`${
+                                    msg.from === username
+                                        ? "text-right text-green-700"
+                                        : "text-left text-gray-800" 
+                                } break-words whitespace-pre-wrap`}
+                            >
+                                <strong>{msg.from === username ? "You" : msg.from}:</strong>{" "}
+                                {msg.message}
+                            </p>
+                        ))}
+                    </div>
+
+                    {/* Input section */}
+                    <div className="mt-2 flex pb-10">
+                        <input
+                            className="border p-2 w-full shadow-md rounded-xl focus:bg-green-100 hover:scale-101 duration-300"
+                            value={message}
+                            onChange={(e) => setMessage(e.target.value)}
+                            placeholder="Ask AI something..."
+                            onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                    e.preventDefault();
+                                    sendAIMessage();
+                                }
+                            }}
+                        />
+
+                        <button
+                            onClick={sendAIMessage}
+                            className="bg-green-500 shadow-md rounded-xl text-white p-2 ml-2 hover:scale-102 hover:shadow-xl"
+                        >
+                            Send
+                        </button>
+                    </div>
+                </div>
+            ) :	selectedUser ? (
 					<>
 						<h2 className="text-lg font-bold mb-2">Chat with {selectedUser}</h2>
 						<div className="flex-1 border p-2 overflow-y-auto rounded rounded-xl bg-blue-100/50">
