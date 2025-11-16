@@ -229,7 +229,7 @@ export default function ChatPage() {
 				<div className="mb-3">
 					<input
 						className="border p-2 w-full mb-2 shadow-md rounded rounded-xl focus:bg-yellow-100 hover:scale-102 
-                        duration-300 delay-25 transition-all dark:border-white dark:placeholder-white dark:focus:bg-sky-800"
+                        duration-300 delay-25 transition-all dark:border-white dark:text-white dark:placeholder-white dark:focus:bg-sky-800"
 						placeholder="Enter username"
 						value={username}
 						onChange={(e) => setUsername(e.target.value)}
@@ -281,6 +281,8 @@ export default function ChatPage() {
 					<div>
 						<h2 className="font-semibold dark:text-white">Connected users:</h2>
 						<ul>
+							<li className="cursor-pointer p-2 rounded rounded-xl hover:bg-blue-100/50 duration-300 delay-25 
+							dark:text-white acive:bg-blue-100">{username}</li>
 							{users
 								.filter((u) => u !== username)
 								.map((u) => (
@@ -296,7 +298,7 @@ export default function ChatPage() {
 											});
 										}}
 										className={`cursor-pointer p-2 rounded rounded-xl hover:bg-blue-100/50 duration-300 delay-25 dark:text-white
-                        acive:bg-blue-100 ${selectedUser === u ? "bg-blue-100 dark:bg-blue-800" : unreadChats.has(u) ? "bg-red-100 font-semibold" : ""
+                        acive:bg-blue-100 ${selectedUser === u ? "bg-blue-100 dark:bg-blue-800" : unreadChats.has(u) ? "bg-red-100 dark:bg-indigo-800 font-semibold" : ""
 											}`}
 									>
 										{unreadChats.has(u) ? u + " !unread messages!" : u}
@@ -422,7 +424,7 @@ export default function ChatPage() {
 						{/* Input section */}
 						<div className="mt-2 flex pb-10">
 							<input
-								className="border p-2 w-full shadow-md rounded-xl focus:bg-green-100 hover:scale-101 duration-300 dark:border-white dark:placeholder-white dark:focus:placeholder-black"
+								className="border p-2 w-full shadow-md rounded-xl focus:bg-green-100 hover:scale-101 duration-300 dark:border-white dark:placeholder-white dark:focus:text-black dark:text-white dark:focus:placeholder-black"
 								value={message}
 								onChange={(e) => setMessage(e.target.value)}
 								placeholder="Ask AI something..."
@@ -484,7 +486,7 @@ export default function ChatPage() {
 						</div>
 						<div className="mt-2 flex">
 							<input
-								className="border p-2 w-full mt-2 shadow-md rounded rounded-xl focus:bg-blue-100 hover:scale-101 duration-300 delay-25 transition-all flex-1 dark:border-white dark:placeholder-white dark:focus:placeholder-black"
+								className="border p-2 w-full mt-2 shadow-md rounded rounded-xl focus:bg-blue-100 hover:scale-101 duration-300 delay-25 transition-all flex-1 dark:border-white dark:placeholder-white dark:focus:text-black dark:text-white dark:focus:placeholder-black"
 								value={message}
 								onChange={(e) => setMessage(e.target.value)}
 								placeholder="Type a message..."
@@ -516,7 +518,14 @@ export default function ChatPage() {
 					</>
 				) : selectedGroup ? (
 					<>
-						<h2 className="text-lg font-bold mb-2 dark:text-gray-100">Group: {selectedGroup}</h2>
+						<div className="flex">
+							<h2 className="text-lg font-bold mb-2 dark:text-gray-100">Group: {selectedGroup} || members: </h2>
+							{
+								groups[selectedGroup].map((member: string) => (
+									<div className="dark:text-white" key={member}>{`${member},`}</div>
+								))
+							}
+						</div>
 						<div className="flex-1 border p-2 overflow-y-auto rounded rounded-xl bg-purple-100/50">
 							{(groupChats[selectedGroup] || []).map((msg, i) => (
 								<div key={i} className={`flex ${msg.from === username ? 'justify-end' : 'justify-start'} mb-3`}>
@@ -556,7 +565,7 @@ export default function ChatPage() {
 						</div>
 						<div className="mt-2 flex">
 							<input
-								className="flex-1 border p-2 w-full mt-2 shadow-md rounded rounded-xl focus:bg-purple-100 hover:scale-102 duration-300 delay-25 transition-all dark:placeholder-gray-100 dark:border-white dark:focus:placeholder-black"
+								className="flex-1 border p-2 w-full mt-2 shadow-md rounded rounded-xl focus:bg-purple-100 hover:scale-102 duration-300 delay-25 transition-all dark:placeholder-gray-100 dark:text-white dark:focus:text-black dark:border-white dark:focus:placeholder-black"
 								value={message}
 								onChange={(e) => setMessage(e.target.value)}
 								placeholder="Message group..."
