@@ -2,6 +2,6 @@
 import { io } from "socket.io-client";
 
 // Create and export one shared socket instance
-export const socket = io("http://localhost:5432", {
-  transports: ["websocket"],  // force WebSocket transport (for FastAPI)
+export const socket = io(`${process.env.NEXT_PUBLIC_API_URL}`, {
+  transports: ["websocket"], // force WebSocket transport (for FastAPI)
 });

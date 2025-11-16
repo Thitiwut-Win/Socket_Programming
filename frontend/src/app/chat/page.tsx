@@ -1,11 +1,9 @@
 "use client";
 import { useEffect, useState } from "react";
-import { io } from "socket.io-client";
 
 import { socket } from "../../../lib/socket";
 import ThemeToggleButton from "@/src/components/ThemeToggleButton";
 import Link from "next/link";
-import { ClipboardDocumentIcon, PhotoIcon } from "@heroicons/react/24/solid";
 
 interface Message {
 	from: string;

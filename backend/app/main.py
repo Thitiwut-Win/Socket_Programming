@@ -1,10 +1,16 @@
 import socketio
 from fastapi import FastAPI
 from app.events import register_socketio_events
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+FRONTEND_URL = os.getenv("FRONTEND_URL")
 
 sio = socketio.AsyncServer(
     async_mode='asgi',
-    cors_allowed_origins="*"
+    cors_allowed_origins=f"{FRONTEND_URL}"
 )
 
 app = FastAPI()
