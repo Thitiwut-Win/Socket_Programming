@@ -282,7 +282,7 @@ export default function ChatPage() {
 						<h2 className="font-semibold dark:text-white">Connected users:</h2>
 						<ul>
 							<li className="cursor-pointer p-2 rounded rounded-xl hover:bg-blue-100/50 duration-300 delay-25 
-							dark:text-white acive:bg-blue-100">{username}</li>
+							dark:text-white acive:bg-blue-100">{username}(me)</li>
 							{users
 								.filter((u) => u !== username)
 								.map((u) => (
@@ -318,7 +318,7 @@ export default function ChatPage() {
 							<>
 								<input
 									className="border p-2 w-full mb-2 shadow-md rounded rounded-xl focus:bg-purple-100 hover:scale-101 duration-300 
-									delay-25 transition-all dark:placeholder-gray-100 dark:border-gray-100"
+									delay-25 transition-all dark:placeholder-gray-100 dark:border-gray-100 dark:text-white dark:focus:placeholder-black dark:focus:text-black"
 									placeholder="New group name"
 									onKeyDown={(e) => {
 										if (e.key === "Enter") {
@@ -354,7 +354,7 @@ export default function ChatPage() {
 													return newSet;
 												});
 											}}
-											className={`cursor-pointer p-2 rounded rounded-xl hover:bg-purple-100/50 duration-300 delay-25 acive:bg-purple-100 dark:text-gray-100 ${selectedGroup === g ? "bg-purple-100 dark:bg-purple-800" : unreadChats.has(g) ? "bg-red-100 font-semibold" : ""
+											className={`cursor-pointer p-2 rounded rounded-xl hover:bg-purple-100/50 duration-300 delay-25 acive:bg-purple-100 dark:text-gray-100 ${selectedGroup === g ? "bg-purple-100 dark:bg-purple-800" : unreadChats.has(g) ? "bg-red-100 dark:bg-red-900 font-semibold" : ""
 												}`}
 										>
 											{unreadChats.has(g) ? g + " !unread messages! " : g} ({groups[g]?.length || 0})

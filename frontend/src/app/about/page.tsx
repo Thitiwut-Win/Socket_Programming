@@ -28,8 +28,9 @@ export default function AboutPage() {
 
         <p className="mt-6 text-slate-700 dark:text-slate-300 text-center">
           Built with <span className="font-semibold">Next.js</span>,
-          <span className="font-semibold"> React</span>, and
-          <span className="font-semibold"> TailwindCSS</span>.
+          <span className="font-semibold"> TailwindCSS</span>,
+          <span className="font-semibold"> Python</span>, and
+          <span className="font-semibold"> FastAPI</span>.
         </p>
         <button
           onClick={handleBack}
