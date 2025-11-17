@@ -6,7 +6,7 @@ load_dotenv()
 
 GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 
-async def ask_grok(message: str):
+async def ask_groq(message: str):
     url = "https://api.groq.com/openai/v1/chat/completions"
 
     headers = {

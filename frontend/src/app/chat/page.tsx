@@ -15,6 +15,7 @@ interface Message {
 
 export default function ChatPage() {
 	const [username, setUsername] = useState("");
+	const [tempUsername, setTempUsername] = useState("");
 	const [users, setUsers] = useState<string[]>([]);
 	const [selectedUser, setSelectedUser] = useState<string | null>(null);
 	const [message, setMessage] = useState("");
@@ -37,6 +38,8 @@ export default function ChatPage() {
 		});
 		socket.on("update_user_list", (userList) => {
 			setUsers(userList);
+
+			setTempUsername(username)
 		});
 
 		socket.off("error_message");
@@ -232,7 +235,7 @@ export default function ChatPage() {
                         duration-300 delay-25 transition-all dark:border-white dark:text-white dark:placeholder-white dark:focus:bg-sky-800"
 						placeholder="Enter username"
 						value={username}
-						onChange={(e) => setUsername(e.target.value)}
+						onChange={(e) => { setUsername(e.target.value) }}
 					/>
 					<button
 						onClick={register}
@@ -282,7 +285,7 @@ export default function ChatPage() {
 						<h2 className="font-semibold dark:text-white">Connected users:</h2>
 						<ul>
 							<li className="cursor-pointer p-2 rounded rounded-xl hover:bg-blue-100/50 duration-300 delay-25 
-							dark:text-white acive:bg-blue-100">{username}(me)</li>
+							dark:text-white acive:bg-blue-100">{tempUsername}(me)</li>
 							{users
 								.filter((u) => u !== username)
 								.map((u) => (
@@ -358,6 +361,11 @@ export default function ChatPage() {
 												}`}
 										>
 											{unreadChats.has(g) ? g + " !unread messages! " : g} ({groups[g]?.length || 0})
+											{
+												groups[g].map((member: string) => (
+													<div className="dark:text-white" key={member}>{`${member}`}</div>
+												))
+											}
 										</li>
 									))}
 								</ul>
